@@ -1,7 +1,6 @@
 'use strict';
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
-const ZIP_ENTRY_HEADER_BEGIN_LENGTH = 30; // bytes
 var DebugLevel;
 (function (DebugLevel) {
     DebugLevel[DebugLevel["Silent"] = 0] = "Silent";
@@ -109,24 +108,6 @@ function runWithTimeout(promise, timeout) {
             }
         });
     });
-}
-async function getEntryMetadata(blob, entry) {
-    const offset = entry.offset;
-    const headerBeginRaw = await blob.slice(offset, offset + ZIP_ENTRY_HEADER_BEGIN_LENGTH).arrayBuffer();
-    const dataView = new DataView(headerBeginRaw);
-    const compressionMethod = dataView.getUint16(8, true);
-    const compressedSize = dataView.getUint32(18, true);
-    const uncompressedSize = dataView.getUint32(22, true);
-    const fileNameLength = dataView.getUint16(26, true);
-    const extraFieldLength = dataView.getUint16(28, true);
-    const headerSize = ZIP_ENTRY_HEADER_BEGIN_LENGTH + fileNameLength + extraFieldLength;
-    return {
-        offset,
-        compressionMethod,
-        compressedSize,
-        uncompressedSize,
-        headerSize,
-    };
 }
 // Wrapper for Entry#getData() that unwraps ProgressEvent errors
 async function zipGetData(entry, writer, options) {
@@ -8675,37 +8656,6 @@ class BlobWriter extends Stream {
 	}
 }
 
-class TextWriter extends BlobWriter {
-
-	constructor(encoding) {
-		super(encoding);
-		Object.assign(this, {
-			encoding,
-			utf8: !encoding || encoding.toLowerCase() == "utf-8"
-		});
-	}
-
-	async getData() {
-		const {
-			encoding,
-			utf8
-		} = this;
-		const blob = await super.getData();
-		if (blob.text && utf8) {
-			return blob.text();
-		} else {
-			const reader = new FileReader();
-			return new Promise((resolve, reject) => {
-				Object.assign(reader, {
-					onload: ({ target }) => resolve(target.result),
-					onerror: () => reject(reader.error)
-				});
-				reader.readAsText(blob, encoding);
-			});
-		}
-	}
-}
-
 class SplitDataReader extends Reader {
 
 	constructor(readers) {
@@ -9699,90 +9649,13 @@ e(configure);
 
 configure({ Deflate: ZipDeflate, Inflate: ZipInflate });
 
-function parseIndex(index, size) {
-    return index < 0 ?
-        Math.max(index + size, 0) :
-        Math.min(index, size);
-}
-class BlobEntryReaderImpl extends Reader {
-    blob;
-    offset;
-    constructor(blob, entryMetadata) {
-        super(blob);
-        this.blob = blob;
-        this.offset = entryMetadata.offset + entryMetadata.headerSize;
-        this.size = entryMetadata.compressedSize;
-    }
-    async readUint8Array(index, length) {
-        const start = parseIndex(index, this.size) + this.offset;
-        const end = parseIndex(index + length, this.size) + this.offset;
-        const blob = this.blob.slice(start, end);
-        return new Uint8Array(await blob.arrayBuffer());
-    }
-}
-/**
- * Represents a {@link Reader} instance used to read data of an entry in a zip
- * file provided as a {@link Blob}. It directly reads data if it is uncompressed.
- */
-class BlobEntryReader extends Reader {
-    blob;
-    entry;
-    mimeString;
-    options;
-    reader;
-    /**
-     * @param blob - The blob to read data from, usually the outer zip file.
-     * @param entry - The entry to read data of, usually the inner zip file.
-     * @param mimeString - The MIME type of the data.
-     * @param options - Represents options passed to {@link Entry#getData}.
-     */
-    constructor(blob, entry, mimeString, options) {
-        super();
-        this.blob = blob;
-        this.entry = entry;
-        this.mimeString = mimeString;
-        this.options = options;
-    }
-    async init() {
-        const entryMetadata = await getEntryMetadata(this.blob, this.entry);
-        if (entryMetadata.compressionMethod !== 0) {
-            const entryBlob = await zipGetData(this.entry, new BlobWriter(this.mimeString), this.options);
-            this.reader = new BlobReader(entryBlob);
-        }
-        else {
-            this.reader = new BlobEntryReaderImpl(this.blob, entryMetadata);
-        }
-        this.size = this.reader.size;
-    }
-    async readUint8Array(index, length) {
-        return this.reader.readUint8Array(index, length);
-    }
-}
-
 // Images needed for fastbootd
 const BOOT_CRITICAL_IMAGES = [
-    "boot",
-    "dt",
-    "dtbo",
-    "init_boot",
-    "pvmfw",
-    "recovery",
-    "vbmeta_system",
-    "vbmeta_vendor",
     "vbmeta",
-    "vendor_boot",
-    "vendor_kernel_boot",
 ];
 // Less critical images to flash after boot-critical ones
 const SYSTEM_IMAGES = [
-    "odm",
-    "odm_dlkm",
-    "product",
-    "system_dlkm",
-    "system_ext",
     "system",
-    "vendor_dlkm",
-    "vendor",
 ];
 /**
  * User-friendly action strings for factory image flashing progress.
@@ -9838,129 +9711,78 @@ async function tryFlashImages(device, entries, onProgress, imageNames) {
         }
     }
 }
-async function checkRequirements(device, androidInfo) {
-    // Deal with CRLF just in case
-    for (const line of androidInfo.replace("\r", "").split("\n")) {
-        const match = line.match(/^require\s+(.+?)=(.+)$/);
-        if (!match) {
-            continue;
-        }
-        let variable = match[1];
-        // Historical mismatch that we still need to deal with
-        if (variable === "board") {
-            variable = "product";
-        }
-        const expectValue = match[2];
-        const expectValues = expectValue.split("|");
-        // Special case: not a real variable at all
-        if (variable === "partition-exists") {
-            // Check whether the partition exists on the device:
-            // has-slot = undefined || FAIL => doesn't exist
-            // has-slot = yes || no         => exists
-            const hasSlot = await device.getVariable(`has-slot:${expectValue}`);
-            if (hasSlot !== "yes" && hasSlot !== "no") {
-                throw new FastbootError("FAIL", `Requirement ${variable}=${expectValue} failed, device lacks partition`);
-            }
-            // Check whether we recognize the partition
-            if (!BOOT_CRITICAL_IMAGES.includes(expectValue) &&
-                !SYSTEM_IMAGES.includes(expectValue)) {
-                throw new FastbootError("FAIL", `Requirement ${variable}=${expectValue} failed, unrecognized partition`);
-            }
-        }
-        else {
-            const realValue = await device.getVariable(variable);
-            if (expectValues.includes(realValue)) {
-                logDebug(`Requirement ${variable}=${expectValue} passed`);
-            }
-            else {
-                const msg = `Requirement ${variable}=${expectValue} failed, value = ${realValue}`;
-                logDebug(msg);
-                throw new FastbootError("FAIL", msg);
-            }
-        }
-    }
-}
-async function tryReboot(device, target, onReconnect) {
-    try {
-        await device.reboot(target, false);
-    }
-    catch (e) {
-        /* Failed = device rebooted by itself */
-    }
-    await device.waitForConnect(onReconnect);
-}
 async function flashZip(device, blob, wipe, onReconnect, onProgress = () => { }) {
     onProgress("load", "package", 0.0);
     const reader = new ZipReader(new BlobReader(blob));
     const entries = await reader.getEntries();
-    // Bootloader and radio packs can only be flashed in the bare-metal bootloader
     if ((await device.getVariable("is-userspace")) === "yes") {
         await device.reboot("bootloader", true, onReconnect);
     }
-    // 1. Bootloader pack (repeated for slot A and B)
-    await tryFlashImages(device, entries, onProgress, ["bootloader"]);
-    await runWithTimedProgress(onProgress, "reboot", "device", BOOTLOADER_REBOOT_TIME, tryReboot(device, "bootloader", onReconnect));
-    await tryFlashImages(device, entries, onProgress, ["bootloader"]);
-    await runWithTimedProgress(onProgress, "reboot", "device", BOOTLOADER_REBOOT_TIME, tryReboot(device, "bootloader", onReconnect));
-    // 2. Radio pack
-    await tryFlashImages(device, entries, onProgress, ["radio"]);
-    await runWithTimedProgress(onProgress, "reboot", "device", BOOTLOADER_REBOOT_TIME, tryReboot(device, "bootloader", onReconnect));
     // Cancel snapshot update if in progress
     const snapshotStatus = await device.getVariable("snapshot-update-status");
     if (snapshotStatus !== null && snapshotStatus !== "none") {
         await device.runCommand("snapshot-update:cancel");
     }
-    // Load nested images for the following steps
-    logDebug("Loading nested images from zip");
-    onProgress("unpack", "images", 0.0);
-    let entry = entries.find((e) => e.filename.match(/image-.+\.zip$/));
-    const imageReader = new ZipReader(new BlobEntryReader(blob, entry, "application/zip", {
-        onprogress: (bytes, len) => {
-            onProgress("unpack", "images", bytes / len);
-            return undefined;
-        },
-    }));
-    const imageEntries = await imageReader.getEntries();
-    // 3. Check requirements
-    entry = imageEntries.find((e) => e.filename === "android-info.txt");
-    if (entry !== undefined) {
-        const reqText = await zipGetData(entry, new TextWriter());
-        await checkRequirements(device, reqText);
+    // Boot-critical images
+    await tryFlashImages(device, entries, onProgress, BOOT_CRITICAL_IMAGES);
+    // Reboot to fastbootd
+    await runWithTimedProgress(onProgress, "reboot", "device", FASTBOOTD_REBOOT_TIME, device.reboot("fastboot", true, onReconnect));
+    if ((await device.getVariable("is-userspace")) !== "yes") {
+        throw new FastbootError("FAIL", `Requirement is-userspace=yes failed`);
     }
-    // 4. Boot-critical images
-    await tryFlashImages(device, imageEntries, onProgress, BOOT_CRITICAL_IMAGES);
-    // 5. Super partition template
-    // This is also where we reboot to fastbootd.
-    entry = imageEntries.find((e) => e.filename === "super_empty.img");
-    if (entry !== undefined) {
-        await runWithTimedProgress(onProgress, "reboot", "device", FASTBOOTD_REBOOT_TIME, device.reboot("fastboot", true, onReconnect));
-        let superName = await device.getVariable("super-partition-name");
-        if (!superName) {
-            superName = "super";
+    if (wipe) {
+        try {
+            await device.runCommand("erase:system_a");
         }
-        const superAction = wipe ? "wipe" : "flash";
-        onProgress(superAction, "super", 0.0);
-        const superBlob = await zipGetData(entry, new BlobWriter("application/octet-stream"));
-        await device.upload(superName, await readBlobAsBuffer(superBlob), (progress) => {
-            onProgress(superAction, "super", progress);
-        });
-        await device.runCommand(`update-super:${superName}${wipe ? ":wipe" : ""}`);
+        catch (e) {
+            // Ignore
+        }
+        try {
+            await device.runCommand("erase:system_b");
+        }
+        catch (e) {
+            // Ignore
+        }
+        try {
+            await device.runCommand("delete-logical-partition:product_a");
+        }
+        catch (e) {
+            // Ignore
+        }
+        try {
+            await device.runCommand("delete-logical-partition:product_b");
+        }
+        catch (e) {
+            // Ignore
+        }
+        try {
+            await device.runCommand("delete-logical-partition:system_ext_a");
+        }
+        catch (e) {
+            // Ignore
+        }
+        try {
+            await device.runCommand("delete-logical-partition:system_ext_b");
+        }
+        catch (e) {
+            // Ignore
+        }
     }
-    // 6. Remaining system images
-    await tryFlashImages(device, imageEntries, onProgress, SYSTEM_IMAGES);
+    // System images
+    await tryFlashImages(device, entries, onProgress, SYSTEM_IMAGES);
     // We unconditionally reboot back to the bootloader here if we're in fastbootd,
     // even when there's no custom AVB key, because common follow-up actions like
     // locking the bootloader and wiping data need to be done in the bootloader.
     if ((await device.getVariable("is-userspace")) === "yes") {
         await runWithTimedProgress(onProgress, "reboot", "device", BOOTLOADER_REBOOT_TIME, device.reboot("bootloader", true, onReconnect));
     }
-    // 7. Custom AVB key
-    entry = entries.find((e) => e.filename.endsWith("avb_pkmd.bin"));
+    // Custom AVB key
+    const entry = entries.find((e) => e.filename.endsWith("avb_pkmd.bin"));
     if (entry !== undefined) {
         await device.runCommand("erase:avb_custom_key");
         await flashEntryBlob(device, entry, onProgress, "avb_custom_key");
     }
-    // 8. Wipe userdata
+    // Wipe userdata
     if (wipe) {
         await runWithTimedProgress(onProgress, "wipe", "data", USERDATA_ERASE_TIME, device.runCommand("erase:userdata"));
     }
