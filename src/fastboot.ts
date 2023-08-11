@@ -1,9 +1,7 @@
 import * as Sparse from "./sparse";
 import * as common from "./common";
-import {
-    FactoryProgressCallback,
-    flashZip as flashFactoryZip,
-} from "./factory";
+import { flashZip as flashFactoryZip } from "./factory";
+import type { FactoryProgressCallback } from "./factory";
 
 const FASTBOOT_USB_CLASS = 0xff;
 const FASTBOOT_USB_SUBCLASS = 0x42;
@@ -78,9 +76,9 @@ export class FastbootDevice {
     epOut: number | null;
 
     private _registeredUsbListeners: boolean;
-    private _connectResolve: ((value: any) => void) | null;
+    private _connectResolve: ((value: unknown) => void) | null;
     private _connectReject: ((err: unknown) => void) | null;
-    private _disconnectResolve: ((value: any) => void) | null;
+    private _disconnectResolve: ((value: unknown) => void) | null;
 
     /**
      * Create a new fastboot device instance. This doesn't actually connect to
@@ -119,14 +117,14 @@ export class FastbootDevice {
         }
 
         // Validate device
-        let ife = this.device!.configurations[0].interfaces[0].alternates[0];
+        const ife = this.device!.configurations[0].interfaces[0].alternates[0];
         if (ife.endpoints.length !== 2) {
             throw new UsbError("Interface has wrong number of endpoints");
         }
 
         this.epIn = null;
         this.epOut = null;
-        for (let endpoint of ife.endpoints) {
+        for (const endpoint of ife.endpoints) {
             common.logVerbose("Checking endpoint:", endpoint);
             if (endpoint.type !== "bulk") {
                 throw new UsbError("Interface endpoint is not bulk");
@@ -159,10 +157,12 @@ export class FastbootDevice {
 
             await this.device!.selectConfiguration(1);
             await this.device!.claimInterface(0); // fastboot
-        } catch (error) {
+        } catch (error: unknown) {
             // Propagate exception from waitForConnect()
             if (this._connectReject !== null) {
-                this._connectReject(error);
+                if (error instanceof Error) {
+	           this._connectReject(error);
+                }
                 this._connectResolve = null;
                 this._connectReject = null;
             }
@@ -187,7 +187,7 @@ export class FastbootDevice {
             return;
         }
 
-        return await new Promise((resolve, _reject) => {
+        return await new Promise((resolve) => {
             this._disconnectResolve = resolve;
         });
     }
@@ -219,7 +219,7 @@ export class FastbootDevice {
      * @throws {UsbError}
      */
     async connect() {
-        let devices = await navigator.usb.getDevices();
+        const devices = await navigator.usb.getDevices();
         common.logDebug("Found paired USB devices:", devices);
         if (devices.length === 1) {
             this.device = devices[0];
@@ -258,7 +258,7 @@ export class FastbootDevice {
                 this.device = event.device;
 
                 // Check whether waitForConnect() is pending and save it for later
-                let hasPromiseReject = this._connectReject !== null;
+                const hasPromiseReject = this._connectReject !== null;
                 try {
                     await this._validateAndConnectDevice();
                 } catch (error) {
@@ -284,17 +284,17 @@ export class FastbootDevice {
      * @throws {FastbootError}
      */
     private async _readResponse(): Promise<CommandResponse> {
-        let respData = {
+        const respData = {
             text: "",
         } as CommandResponse;
         let respStatus;
 
         do {
-            let respPacket = await this.device!.transferIn(this.epIn!, 64);
-            let response = new TextDecoder().decode(respPacket.data);
+            const respPacket = await this.device!.transferIn(this.epIn!, 64);
+            const response = new TextDecoder().decode(respPacket.data);
 
             respStatus = response.substring(0, 4);
-            let respMessage = response.substring(4);
+            const respMessage = response.substring(4);
             common.logDebug(`Response: ${respStatus} ${respMessage}`);
 
             if (respStatus === "OKAY") {
@@ -331,7 +331,7 @@ export class FastbootDevice {
         }
 
         // Send raw UTF-8 command
-        let cmdPacket = new TextEncoder().encode(command);
+        const cmdPacket = new TextEncoder().encode(command);
         await this.device!.transferOut(this.epOut!, cmdPacket);
         common.logDebug("Command:", command);
 
@@ -380,7 +380,7 @@ export class FastbootDevice {
      */
     private async _getDownloadSize(): Promise<number> {
         try {
-            let resp = (await this.getVariable(
+            const resp = (await this.getVariable(
                 "max-download-size"
             ))!.toLowerCase();
             if (resp) {
@@ -408,7 +408,7 @@ export class FastbootDevice {
         let i = 0;
         let remainingBytes = buffer.byteLength;
         while (remainingBytes > 0) {
-            let chunk = buffer.slice(
+            const chunk = buffer.slice(
                 i * BULK_TRANSFER_SIZE,
                 (i + 1) * BULK_TRANSFER_SIZE
             );
@@ -444,14 +444,14 @@ export class FastbootDevice {
     async upload(
         partition: string,
         buffer: ArrayBuffer,
-        onProgress: FlashProgressCallback = (_progress) => {}
+        onProgress: FlashProgressCallback = () => {}
     ) {
         common.logDebug(
             `Uploading single sparse to ${partition}: ${buffer.byteLength} bytes`
         );
 
         // Bootloader requires an 8-digit hex number
-        let xferHex = buffer.byteLength.toString(16).padStart(8, "0");
+        const xferHex = buffer.byteLength.toString(16).padStart(8, "0");
         if (xferHex.length !== 8) {
             throw new FastbootError(
                 "FAIL",
@@ -460,14 +460,14 @@ export class FastbootDevice {
         }
 
         // Check with the device and make sure size matches
-        let downloadResp = await this.runCommand(`download:${xferHex}`);
+        const downloadResp = await this.runCommand(`download:${xferHex}`);
         if (downloadResp.dataSize === undefined) {
             throw new FastbootError(
                 "FAIL",
                 `Unexpected response to download command: ${downloadResp.text}`
             );
         }
-        let downloadSize = parseInt(downloadResp.dataSize!, 16);
+        const downloadSize = parseInt(downloadResp.dataSize!, 16);
         if (downloadSize !== buffer.byteLength) {
             throw new FastbootError(
                 "FAIL",
@@ -521,22 +521,22 @@ export class FastbootDevice {
     async flashBlob(
         partition: string,
         blob: Blob,
-        onProgress: FlashProgressCallback = (_progress) => {}
+        onProgress: FlashProgressCallback = () => {}
     ) {
         // Use current slot if partition is A/B
         if ((await this.getVariable(`has-slot:${partition}`)) === "yes") {
             partition += "_" + (await this.getVariable("current-slot"));
         }
 
-        let maxDlSize = await this._getDownloadSize();
-        let fileHeader = await common.readBlobAsBuffer(
+        const maxDlSize = await this._getDownloadSize();
+        const fileHeader = await common.readBlobAsBuffer(
             blob.slice(0, Sparse.FILE_HEADER_SIZE)
         );
 
         let totalBytes = blob.size;
         let isSparse = false;
         try {
-            let sparseHeader = Sparse.parseFileHeader(fileHeader);
+            const sparseHeader = Sparse.parseFileHeader(fileHeader);
             if (sparseHeader !== null) {
                 totalBytes = sparseHeader.blocks * sparseHeader.blockSize;
                 isSparse = true;
@@ -568,7 +568,7 @@ export class FastbootDevice {
         );
         let splits = 0;
         let sentBytes = 0;
-        for await (let split of Sparse.splitBlob(blob, maxDlSize)) {
+        for await (const split of Sparse.splitBlob(blob, maxDlSize)) {
             await this.upload(partition, split.data, (progress) => {
                 onProgress((sentBytes + progress * split.bytes) / totalBytes);
             });
@@ -593,12 +593,12 @@ export class FastbootDevice {
      */
     async bootBlob(
         blob: Blob,
-        onProgress: FlashProgressCallback = (_progress) => {}
+        onProgress: FlashProgressCallback = () => {}
     ) {
 
         common.logDebug(`Booting ${blob.size} bytes image`);
 
-        let data = await common.readBlobAsBuffer(blob);
+        const data = await common.readBlobAsBuffer(blob);
         await this.upload("boot.img", data, onProgress);
 
         common.logDebug("Booting payload...");
@@ -622,7 +622,7 @@ export class FastbootDevice {
         blob: Blob,
         wipe: boolean,
         onReconnect: ReconnectCallback,
-        onProgress: FactoryProgressCallback = (_progress) => {}
+        onProgress: FactoryProgressCallback = () => {}
     ) {
         return await flashFactoryZip(this, blob, wipe, onReconnect, onProgress);
     }

@@ -1,5 +1,5 @@
-import { FactoryProgressCallback } from "./factory";
-import { Entry, EntryGetDataOptions, WritableWriter } from "@zip.js/zip.js";
+import type { FactoryProgressCallback } from "./factory";
+import type { Entry, EntryGetDataOptions, WritableWriter } from "@zip.js/zip.js";
 
 const ZIP_ENTRY_HEADER_BEGIN_LENGTH = 30; // bytes
 
@@ -19,13 +19,13 @@ export interface EntryMetadata {
 
 let debugLevel = DebugLevel.Silent;
 
-export function logDebug(...data: any[]) {
+export function logDebug(...data: unknown[]) {
     if (debugLevel >= 1) {
         console.log(...data);
     }
 }
 
-export function logVerbose(...data: any[]) {
+export function logVerbose(...data: unknown[]) {
     if (debugLevel >= 2) {
         console.log(...data);
     }
@@ -52,7 +52,7 @@ export function setDebugLevel(level: DebugLevel) {
  */
 export function readBlobAsBuffer(blob: Blob): Promise<ArrayBuffer> {
     return new Promise((resolve, reject) => {
-        let reader = new FileReader();
+        const reader = new FileReader();
         reader.onload = () => {
             resolve(reader.result! as ArrayBuffer);
         };
@@ -65,7 +65,7 @@ export function readBlobAsBuffer(blob: Blob): Promise<ArrayBuffer> {
 }
 
 function waitForFrame() {
-    return new Promise((resolve, _reject) => {
+    return new Promise((resolve) => {
         window.requestAnimationFrame(resolve);
     });
 }
@@ -77,13 +77,13 @@ export async function runWithTimedProgress<T>(
     duration: number,
     workPromise: Promise<T>
 ) {
-    let startTime = new Date().getTime();
+    const startTime = new Date().getTime();
     let stop = false;
 
     onProgress(action, item, 0.0);
-    let progressPromise = (async () => {
+    const progressPromise = (async () => {
         let now;
-        let targetTime = startTime + duration;
+        const targetTime = startTime + duration;
 
         do {
             now = new Date().getTime();
@@ -118,7 +118,7 @@ export function runWithTimeout<T>(
     return new Promise((resolve, reject) => {
         // Set up timeout
         let timedOut = false;
-        let tid = setTimeout(() => {
+        const tid = setTimeout(() => {
             // Set sentinel first to prevent race in promise resolving
             timedOut = true;
             reject(new TimeoutError(timeout));
@@ -182,7 +182,7 @@ export async function zipGetData<Type>(
             e.type === "error" &&
             e.target !== null
         ) {
-            throw (e.target as any).error;
+            throw (e.target as ErrorEventInit).error;
         } else {
             throw e;
         }

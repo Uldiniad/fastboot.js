@@ -49,7 +49,7 @@
                     href="index.html"
                     class="link"
                 >
-                    API Documentation
+                    Documentation
                 </a>
                 
                 
@@ -66,14 +66,14 @@
             
             <nav>
                 
-                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootError.html">FastbootError</a></li><li><a href="TimeoutError.html">TimeoutError</a></li><li><a href="UsbError.html">UsbError</a></li></ul><h3>Global</h3><ul><li><a href="global.html#setDebugLevel">setDebugLevel</a></li><li><a href="global.html#USER_ACTION_MAP">USER_ACTION_MAP</a></li></ul></div>
+                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="BlobEntryReader.html">BlobEntryReader</a></li><li><a href="BlobEntryReader_BlobEntryReader.html">BlobEntryReader</a></li><li><a href="FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootDevice_FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootError.html">FastbootError</a></li><li><a href="TimeoutError.html">TimeoutError</a></li><li><a href="UsbError.html">UsbError</a></li></ul><h3>Global</h3><ul><li><a href="global.html#USER_ACTION_MAP">USER_ACTION_MAP</a></li><li><a href="global.html#fromRaw">fromRaw</a></li><li><a href="global.html#parseFileHeader">parseFileHeader</a></li><li><a href="global.html#setDebugLevel">setDebugLevel</a></li><li><a href="global.html#splitBlob">splitBlob</a></li></ul></div>
                 
             </nav>
         </div>
         <div class="core" id="main-content-wrapper">
             <div class="content">
                 <header class="page-title">
-                    <p>Title</p>
+                    <p></p>
                     <h1>Global</h1>
                 </header>
                 
@@ -214,9 +214,9 @@ This can be indexed by the action argument in FactoryFlashCallback.
 
     
         <p class="tag-source">
-            <a href="factory.js.html" class="button">View Source</a>
+            <a href="factory.ts.html" class="button">View Source</a>
             <span>
-                <a href="factory.js.html">factory.js</a>, <a href="factory.js.html#line22">line 22</a>
+                <a href="factory.ts.html">factory.ts</a>, <a href="factory.ts.html#line35">line 35</a>
             </span>
         </p>
     
@@ -236,6 +236,352 @@ This can be indexed by the action argument in FactoryFlashCallback.
         <div class='vertical-section'>
             <h1>Methods</h1>
             <div class="members">
+            
+                <div class="member">
+
+
+    
+    <h4 class="name" id="fromRaw">
+        <a class="href-link" href="#fromRaw">#</a>
+        
+        <span class="code-name">
+            
+                fromRaw<span class="signature">(blob)</span><span class="type-signature"> &rarr; {Promise.&lt;Blob>}</span>
+            
+        </span>
+    </h4>
+    
+
+    
+    
+    <div class="description">
+        Creates a sparse image from buffer containing raw image data.
+    </div>
+    
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+<div class="table-container">
+    <table class="params table">
+        <thead>
+        <tr>
+            
+            <th>Name</th>
+            
+
+            <th>Type</th>
+
+            
+
+            
+
+            <th class="last">Description</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>blob</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">Blob</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">Blob containing the raw image data.</td>
+</tr>
+
+
+        
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+
+    
+
+    
+
+    
+        <p class="tag-source">
+            <a href="sparse.ts.html" class="button">View Source</a>
+            <span>
+                <a href="sparse.ts.html">sparse.ts</a>, <a href="sparse.ts.html#line139">line 139</a>
+            </span>
+        </p>
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div class='columns method-parameter'>
+        <div class="column is-2"><label>Returns:</label></div>
+        <div class="column is-10">
+            
+                    
+
+<div class="columns">
+    
+    <div class='param-desc column is-7'>Promise that resolves the blob containing the new sparse image.</div>
+    
+    
+    <div class='column is-5 has-text-left'>
+        <label>Type: </label>
+        
+<code class="param-type">Promise.&lt;Blob></code>
+
+
+    </div>
+    
+</div>
+
+                
+        </div>
+    </div>
+
+
+
+
+</div>
+            
+                <div class="member">
+
+
+    
+    <h4 class="name" id="parseFileHeader">
+        <a class="href-link" href="#parseFileHeader">#</a>
+        
+        <span class="code-name">
+            
+                parseFileHeader<span class="signature">(buffer)</span><span class="type-signature"> &rarr; {SparseHeader}</span>
+            
+        </span>
+    </h4>
+    
+
+    
+    
+    <div class="description">
+        Returns a parsed version of the sparse image file header from the given buffer.
+    </div>
+    
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+<div class="table-container">
+    <table class="params table">
+        <thead>
+        <tr>
+            
+            <th>Name</th>
+            
+
+            <th>Type</th>
+
+            
+
+            
+
+            <th class="last">Description</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>buffer</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">ArrayBuffer</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">Raw file header data.</td>
+</tr>
+
+
+        
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+
+    
+
+    
+
+    
+        <p class="tag-source">
+            <a href="sparse.ts.html" class="button">View Source</a>
+            <span>
+                <a href="sparse.ts.html">sparse.ts</a>, <a href="sparse.ts.html#line43">line 43</a>
+            </span>
+        </p>
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div class='columns method-parameter'>
+        <div class="column is-2"><label>Returns:</label></div>
+        <div class="column is-10">
+            
+                    
+
+<div class="columns">
+    
+    <div class='param-desc column is-7'>Object containing the header information.</div>
+    
+    
+    <div class='column is-5 has-text-left'>
+        <label>Type: </label>
+        
+<code class="param-type">SparseHeader</code>
+
+
+    </div>
+    
+</div>
+
+                
+        </div>
+    </div>
+
+
+
+
+</div>
             
                 <div class="member">
 
@@ -302,7 +648,7 @@ This can be indexed by the action argument in FactoryFlashCallback.
   <td class="type">
   
       
-<span class="param-type">number</span>
+<code class="param-type">number</code>
 
 
   
@@ -358,9 +704,9 @@ This can be indexed by the action argument in FactoryFlashCallback.
 
     
         <p class="tag-source">
-            <a href="common.js.html" class="button">View Source</a>
+            <a href="common.ts.html" class="button">View Source</a>
             <span>
-                <a href="common.js.html">common.js</a>, <a href="common.js.html#line23">line 23</a>
+                <a href="common.ts.html">common.ts</a>, <a href="common.ts.html#line28">line 28</a>
             </span>
         </p>
     
@@ -388,6 +734,206 @@ This can be indexed by the action argument in FactoryFlashCallback.
 
 </div>
             
+                <div class="member">
+
+
+    
+    <h4 class="name" id="splitBlob">
+        <a class="href-link" href="#splitBlob">#</a>
+        
+        <span class="code-name">
+            
+                splitBlob<span class="signature">(blob, splitSize)</span><span class="type-signature"> &rarr; {Object}</span>
+            
+        </span>
+    </h4>
+    
+
+    
+    
+    <div class="description">
+        Split a sparse image into smaller sparse images within the given size.
+This takes a Blob instead of an ArrayBuffer because it may process images
+larger than RAM.
+    </div>
+    
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+<div class="table-container">
+    <table class="params table">
+        <thead>
+        <tr>
+            
+            <th>Name</th>
+            
+
+            <th>Type</th>
+
+            
+
+            
+
+            <th class="last">Description</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>blob</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">Blob</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">Blob containing the sparse image to split.</td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>splitSize</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">number</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">Maximum size per split.</td>
+</tr>
+
+
+        
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+
+    
+
+    
+
+    
+        <p class="tag-source">
+            <a href="sparse.ts.html" class="button">View Source</a>
+            <span>
+                <a href="sparse.ts.html">sparse.ts</a>, <a href="sparse.ts.html#line167">line 167</a>
+            </span>
+        </p>
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div class='columns method-parameter'>
+        <div class="column is-2"><label>Yields:</label></div>
+        <div class="column is-10">
+            
+                    
+
+<div class="columns">
+    
+    <div class='param-desc column is-7'>Data of the next split image and its output size in bytes.</div>
+    
+    
+    <div class='column is-5 has-text-left'>
+        <label>Type: </label>
+        
+<code class="param-type">Object</code>
+
+
+    </div>
+    
+</div>
+
+                
+        </div>
+    </div>
+
+
+
+</div>
+            
             </div>
         </div>
     
@@ -401,12 +947,12 @@ This can be indexed by the action argument in FactoryFlashCallback.
 
 
     
-    <h4 class="name" id="FactoryFlashCallback">
-        <a class="href-link" href="#FactoryFlashCallback">#</a>
+    <h4 class="name" id="FactoryProgressCallback">
+        <a class="href-link" href="#FactoryProgressCallback">#</a>
         
         <span class="code-name">
             
-                FactoryFlashCallback<span class="signature">(action, item, progress)</span><span class="type-signature"></span>
+                FactoryProgressCallback<span class="signature">(action, item, progress, action, item, progress)</span><span class="type-signature"></span>
             
         </span>
     </h4>
@@ -459,7 +1005,7 @@ This can be indexed by the action argument in FactoryFlashCallback.
   <td class="type">
   
       
-<span class="param-type">string</span>
+<code class="param-type">string</code>
 
 
   
@@ -484,7 +1030,7 @@ This can be indexed by the action argument in FactoryFlashCallback.
   <td class="type">
   
       
-<span class="param-type">string</span>
+<code class="param-type">string</code>
 
 
   
@@ -509,7 +1055,7 @@ This can be indexed by the action argument in FactoryFlashCallback.
   <td class="type">
   
       
-<span class="param-type">number</span>
+<code class="param-type">number</code>
 
 
   
@@ -520,6 +1066,81 @@ This can be indexed by the action argument in FactoryFlashCallback.
   
 
   <td class="description last">Progress within the current action between 0 and 1.</td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>action</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">string</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last"></td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>item</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">string</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last"></td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>progress</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">number</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last"></td>
 </tr>
 
 
@@ -565,9 +1186,9 @@ This can be indexed by the action argument in FactoryFlashCallback.
 
     
         <p class="tag-source">
-            <a href="fastboot.js.html" class="button">View Source</a>
+            <a href="factory.ts.html" class="button">View Source</a>
             <span>
-                <a href="fastboot.js.html">fastboot.js</a>, <a href="fastboot.js.html#line551">line 551</a>
+                <a href="factory.ts.html">factory.ts</a>, <a href="factory.ts.html#line219">line 219</a>
             </span>
         </p>
     
@@ -599,12 +1220,12 @@ This can be indexed by the action argument in FactoryFlashCallback.
 
 
     
-    <h4 class="name" id="ProgressCallback">
-        <a class="href-link" href="#ProgressCallback">#</a>
+    <h4 class="name" id="FlashProgressCallback">
+        <a class="href-link" href="#FlashProgressCallback">#</a>
         
         <span class="code-name">
             
-                ProgressCallback<span class="signature">(progress)</span><span class="type-signature"></span>
+                FlashProgressCallback<span class="signature">(progress, progress)</span><span class="type-signature"></span>
             
         </span>
     </h4>
@@ -657,7 +1278,7 @@ This can be indexed by the action argument in FactoryFlashCallback.
   <td class="type">
   
       
-<span class="param-type">number</span>
+<code class="param-type">number</code>
 
 
   
@@ -668,6 +1289,31 @@ This can be indexed by the action argument in FactoryFlashCallback.
   
 
   <td class="description last">Progress for the current action, between 0 and 1.</td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>progress</code></td>
+  
+
+  <td class="type">
+  
+      
+<code class="param-type">number</code>
+
+
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last"></td>
 </tr>
 
 
@@ -713,9 +1359,9 @@ This can be indexed by the action argument in FactoryFlashCallback.
 
     
         <p class="tag-source">
-            <a href="fastboot.js.html" class="button">View Source</a>
+            <a href="fastboot.ts.html" class="button">View Source</a>
             <span>
-                <a href="fastboot.js.html">fastboot.js</a>, <a href="fastboot.js.html#line363">line 363</a>
+                <a href="fastboot.ts.html">fastboot.ts</a>, <a href="fastboot.ts.html#line510">line 510</a>
             </span>
         </p>
     
@@ -813,109 +1459,9 @@ user action.
 
     
         <p class="tag-source">
-            <a href="fastboot.js.html" class="button">View Source</a>
+            <a href="fastboot.ts.html" class="button">View Source</a>
             <span>
-                <a href="fastboot.js.html">fastboot.js</a>, <a href="fastboot.js.html#line151">line 151</a>
-            </span>
-        </p>
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</div>
-            
-                <div class="member">
-
-
-    
-    <h4 class="name" id="ReconnectCallback">
-        <a class="href-link" href="#ReconnectCallback">#</a>
-        
-        <span class="code-name">
-            
-                ReconnectCallback<span class="signature">()</span><span class="type-signature"></span>
-            
-        </span>
-    </h4>
-    
-
-    
-    
-    <div class="description">
-        Callback for reconnecting the USB device.
-This is necessary because some platforms do not support automatic reconnection,
-and USB connection requests can only be triggered as the result of explicit
-user action.
-    </div>
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    
-
-    
-
-    
-
-    
-        <p class="tag-source">
-            <a href="fastboot.js.html" class="button">View Source</a>
-            <span>
-                <a href="fastboot.js.html">fastboot.js</a>, <a href="fastboot.js.html#line542">line 542</a>
+                <a href="fastboot.ts.html">fastboot.ts</a>, <a href="fastboot.ts.html#line518">line 518</a>
             </span>
         </p>
     
@@ -959,9 +1505,9 @@ user action.
             
             <footer class="footer">
                 <div class="content has-text-centered">
-                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a></p>
+                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.2</a></p>
                     <p class="sidebar-created-by">
-                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by 
+                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by
                         <a href="http://softwarebrothers.co" target="_blank">SoftwareBrothers - JavaScript Development Agency</a>
                     </p>
                 </div>
@@ -974,6 +1520,7 @@ user action.
 <script src="scripts/app.min.js"></script>
 <script>PR.prettyPrint();</script>
 <script src="scripts/linenumber.js"> </script>
+
 
 </body>
 </html>

@@ -1,4 +1,91 @@
-import * as common from "./common";
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title> sparse.ts</title>
+
+  <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="./build/entry.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,400,700|Inconsolata,700" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+  <link type="text/css" rel="stylesheet" href="https://jmblog.github.io/color-themes-for-google-code-prettify/themes/tomorrow-night.min.css">
+  <link type="text/css" rel="stylesheet" href="styles/app.min.css">
+  <link type="text/css" rel="stylesheet" href="styles/iframe.css">
+  <link type="text/css" rel="stylesheet" href="">
+  <script async defer src="https://buttons.github.io/buttons.js"></script>
+
+  
+</head>
+
+
+
+<body class="layout small-header">
+    <div id="stickyNavbarOverlay"></div>
+    
+
+<div class="top-nav">
+    <div class="inner">
+        <a id="hamburger" role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+        <div class="logo">
+            
+            
+        </div>
+        <div class="menu">
+            
+            <div class="navigation">
+                <a
+                    href="index.html"
+                    class="link"
+                >
+                    Documentation
+                </a>
+                
+                
+                
+            </div>
+        </div>
+    </div>
+</div>
+    <div id="main">
+        <div
+            class="sidebar "
+            id="sidebarNav"
+        >
+            
+            <nav>
+                
+                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="BlobEntryReader.html">BlobEntryReader</a></li><li><a href="BlobEntryReader_BlobEntryReader.html">BlobEntryReader</a></li><li><a href="FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootDevice_FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootError.html">FastbootError</a></li><li><a href="TimeoutError.html">TimeoutError</a></li><li><a href="UsbError.html">UsbError</a></li></ul><h3>Global</h3><ul><li><a href="global.html#USER_ACTION_MAP">USER_ACTION_MAP</a></li><li><a href="global.html#fromRaw">fromRaw</a></li><li><a href="global.html#parseFileHeader">parseFileHeader</a></li><li><a href="global.html#setDebugLevel">setDebugLevel</a></li><li><a href="global.html#splitBlob">splitBlob</a></li></ul></div>
+                
+            </nav>
+        </div>
+        <div class="core" id="main-content-wrapper">
+            <div class="content">
+                <header class="page-title">
+                    <p>Source</p>
+                    <h1>sparse.ts</h1>
+                </header>
+                
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import * as common from "./common";
 
 const FILE_MAGIC = 0xed26ff3a;
 
@@ -79,7 +166,7 @@ export function parseFileHeader(buffer: ArrayBuffer): SparseHeader | null {
     // v1.0+
     const major = view.getUint16(4, true);
     const minor = view.getUint16(6, true);
-    if (major !== MAJOR_VERSION || minor < MINOR_VERSION) {
+    if (major !== MAJOR_VERSION || minor &lt; MINOR_VERSION) {
         throw new ImageError(
             `Unsupported sparse image version ${major}.${minor}`
         );
@@ -123,25 +210,25 @@ function parseChunkHeader(buffer: ArrayBuffer) {
     } as SparseChunk;
 }
 
-function calcChunksBlockSize(chunks: Array<SparseChunk>) {
+function calcChunksBlockSize(chunks: Array&lt;SparseChunk>) {
     return chunks
         .map((chunk) => chunk.blocks)
         .reduce((total, c) => total + c, 0);
 }
 
-function calcChunksDataSize(chunks: Array<SparseChunk>) {
+function calcChunksDataSize(chunks: Array&lt;SparseChunk>) {
     return chunks
         .map((chunk) => chunk.data!.size)
         .reduce((total, c) => total + c, 0);
 }
 
-function calcChunksSize(chunks: Array<SparseChunk>) {
+function calcChunksSize(chunks: Array&lt;SparseChunk>) {
     // 28-byte file header, 12-byte chunk headers
     const overhead = FILE_HEADER_SIZE + CHUNK_HEADER_SIZE * chunks.length;
     return overhead + calcChunksDataSize(chunks);
 }
 
-async function createImage(header: SparseHeader, chunks: Array<SparseChunk>): Promise<Blob> {
+async function createImage(header: SparseHeader, chunks: Array&lt;SparseChunk>): Promise&lt;Blob> {
     const blobBuilder = new BlobBuilder();
 
     let buffer = new ArrayBuffer(FILE_HEADER_SIZE);
@@ -192,9 +279,9 @@ async function createImage(header: SparseHeader, chunks: Array<SparseChunk>): Pr
  * Creates a sparse image from buffer containing raw image data.
  *
  * @param {Blob} blob - Blob containing the raw image data.
- * @returns {Promise<Blob>} Promise that resolves the blob containing the new sparse image.
+ * @returns {Promise&lt;Blob>} Promise that resolves the blob containing the new sparse image.
  */
-export async function fromRaw(blob: Blob): Promise<Blob> {
+export async function fromRaw(blob: Blob): Promise&lt;Blob> {
     const header = {
         blockSize: 4096,
         blocks: blob.size / 4096,
@@ -235,7 +322,7 @@ export async function* splitBlob(blob: Blob, splitSize: number) {
     const safeSendValue = Math.floor(splitSize * (7/8));
 
     // Short-circuit if splitting isn't required
-    if (blob.size <= splitSize) {
+    if (blob.size &lt;= splitSize) {
         common.logDebug("Blob fits in 1 payload, not splitting");
         yield {
             data: await common.readBlobAsBuffer(blob),
@@ -256,9 +343,9 @@ export async function* splitBlob(blob: Blob, splitSize: number) {
     header.crc32 = 0;
     blob = blob.slice(FILE_HEADER_SIZE);
 
-    let splitChunks: Array<SparseChunk> = [];
+    let splitChunks: Array&lt;SparseChunk> = [];
     let splitDataBytes = 0;
-    for (let i = 0; i < header.chunks; i++) {
+    for (let i = 0; i &lt; header.chunks; i++) {
         const chunkHeaderData = await common.readBlobAsBuffer(
             blob.slice(0, CHUNK_HEADER_SIZE)
         );
@@ -364,7 +451,7 @@ export async function* splitBlob(blob: Blob, splitSize: number) {
 
     // Finish the final split if necessary
     if (
-        splitChunks.length > 0 &&
+        splitChunks.length > 0 &amp;&amp;
         (splitChunks.length > 1 || splitChunks[0].type !== ChunkType.Skip)
     ) {
         const splitImage = await createImage(header, splitChunks);
@@ -377,3 +464,33 @@ export async function* splitBlob(blob: Blob, splitSize: number) {
         } as SparseSplit;
     }
 }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+            </div>
+            
+            <footer class="footer">
+                <div class="content has-text-centered">
+                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.2</a></p>
+                    <p class="sidebar-created-by">
+                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by
+                        <a href="http://softwarebrothers.co" target="_blank">SoftwareBrothers - JavaScript Development Agency</a>
+                    </p>
+                </div>
+            </footer>
+            
+        </div>
+        <div id="side-nav" class="side-nav">
+        </div>
+    </div>
+<script src="scripts/app.min.js"></script>
+<script>PR.prettyPrint();</script>
+<script src="scripts/linenumber.js"> </script>
+
+
+</body>
+</html>

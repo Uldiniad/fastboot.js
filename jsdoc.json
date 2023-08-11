@@ -3,8 +3,15 @@
         "destination": "./docs/",
         "template": "node_modules/better-docs"
     },
+    "tags": {
+        "allowUnknownTags": ["optional"]
+    },
+    "plugins": [
+        "node_modules/better-docs/typescript"
+    ],
     "source": {
-        "include": ["lib/", "README.md"],
-        "exclude": ["lib/sparse.js"]
+        "include": ["src/", "README.md"],
+        "includePattern": "\\.(jsx|js|ts|tsx)$",
+        "exclude": ["src/sparse.ts, src/io.ts, src/index.ts"]
     }
 }

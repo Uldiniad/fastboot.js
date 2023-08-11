@@ -7,7 +7,7 @@
   
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title> common.js</title>
+  <title> common.ts</title>
 
   <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -51,7 +51,7 @@
                     href="index.html"
                     class="link"
                 >
-                    API Documentation
+                    Documentation
                 </a>
                 
                 
@@ -68,7 +68,7 @@
             
             <nav>
                 
-                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootError.html">FastbootError</a></li><li><a href="TimeoutError.html">TimeoutError</a></li><li><a href="UsbError.html">UsbError</a></li></ul><h3>Global</h3><ul><li><a href="global.html#setDebugLevel">setDebugLevel</a></li><li><a href="global.html#USER_ACTION_MAP">USER_ACTION_MAP</a></li></ul></div>
+                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="BlobEntryReader.html">BlobEntryReader</a></li><li><a href="BlobEntryReader_BlobEntryReader.html">BlobEntryReader</a></li><li><a href="FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootDevice_FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootError.html">FastbootError</a></li><li><a href="TimeoutError.html">TimeoutError</a></li><li><a href="UsbError.html">UsbError</a></li></ul><h3>Global</h3><ul><li><a href="global.html#USER_ACTION_MAP">USER_ACTION_MAP</a></li><li><a href="global.html#fromRaw">fromRaw</a></li><li><a href="global.html#parseFileHeader">parseFileHeader</a></li><li><a href="global.html#setDebugLevel">setDebugLevel</a></li><li><a href="global.html#splitBlob">splitBlob</a></li></ul></div>
                 
             </nav>
         </div>
@@ -76,7 +76,7 @@
             <div class="content">
                 <header class="page-title">
                     <p>Source</p>
-                    <h1>common.js</h1>
+                    <h1>common.ts</h1>
                 </header>
                 
 
@@ -85,15 +85,34 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>let debugLevel = false;
+            <pre class="prettyprint source linenums"><code>import type { FactoryProgressCallback } from "./factory";
+import type { Entry, EntryGetDataOptions, WritableWriter } from "@zip.js/zip.js";
 
-export function logDebug(...data) {
+const ZIP_ENTRY_HEADER_BEGIN_LENGTH = 30; // bytes
+
+export enum DebugLevel {
+    Silent = 0,
+    Debug,
+    Verbose,
+}
+
+export interface EntryMetadata {
+    offset: number;
+    compressionMethod: number;
+    compressedSize: number;
+    uncompressedSize: number;
+    headerSize: number;
+}
+
+let debugLevel = DebugLevel.Silent;
+
+export function logDebug(...data: unknown[]) {
     if (debugLevel >= 1) {
         console.log(...data);
     }
 }
 
-export function logVerbose(...data) {
+export function logVerbose(...data: unknown[]) {
     if (debugLevel >= 2) {
         console.log(...data);
     }
@@ -107,7 +126,7 @@ export function logVerbose(...data) {
  *
  * @param {number} level - Debug level to use.
  */
-export function setDebugLevel(level) {
+export function setDebugLevel(level: DebugLevel) {
     debugLevel = level;
 }
 
@@ -115,14 +134,14 @@ export function setDebugLevel(level) {
  * Reads all of the data in the given blob and returns it as an ArrayBuffer.
  *
  * @param {Blob} blob - Blob with the data to read.
- * @returns {buffer} ArrayBuffer containing data from the blob.
+ * @returns {Promise&lt;ArrayBuffer>} ArrayBuffer containing data from the blob.
  * @ignore
  */
-export function readBlobAsBuffer(blob) {
+export function readBlobAsBuffer(blob: Blob): Promise&lt;ArrayBuffer> {
     return new Promise((resolve, reject) => {
-        let reader = new FileReader();
+        const reader = new FileReader();
         reader.onload = () => {
-            resolve(reader.result);
+            resolve(reader.result! as ArrayBuffer);
         };
         reader.onerror = () => {
             reject(reader.error);
@@ -133,25 +152,25 @@ export function readBlobAsBuffer(blob) {
 }
 
 function waitForFrame() {
-    return new Promise((resolve, _reject) => {
+    return new Promise((resolve) => {
         window.requestAnimationFrame(resolve);
     });
 }
 
-export async function runWithTimedProgress(
-    onProgress,
-    action,
-    item,
-    duration,
-    workPromise
+export async function runWithTimedProgress&lt;T>(
+    onProgress: FactoryProgressCallback,
+    action: string,
+    item: string,
+    duration: number,
+    workPromise: Promise&lt;T>
 ) {
-    let startTime = new Date().getTime();
+    const startTime = new Date().getTime();
     let stop = false;
 
     onProgress(action, item, 0.0);
-    let progressPromise = (async () => {
+    const progressPromise = (async () => {
         let now;
-        let targetTime = startTime + duration;
+        const targetTime = startTime + duration;
 
         do {
             now = new Date().getTime();
@@ -170,18 +189,23 @@ export async function runWithTimedProgress(
 
 /** Exception class for operations that exceeded their timeout duration. */
 export class TimeoutError extends Error {
-    constructor(timeout) {
+    timeout: number;
+
+    constructor(timeout: number) {
         super(`Timeout of ${timeout} ms exceeded`);
         this.name = "TimeoutError";
         this.timeout = timeout;
     }
 }
 
-export function runWithTimeout(promise, timeout) {
+export function runWithTimeout&lt;T>(
+    promise: Promise&lt;T>,
+    timeout: number
+): Promise&lt;T> {
     return new Promise((resolve, reject) => {
         // Set up timeout
         let timedOut = false;
-        let tid = setTimeout(() => {
+        const tid = setTimeout(() => {
             // Set sentinel first to prevent race in promise resolving
             timedOut = true;
             reject(new TimeoutError(timeout));
@@ -206,6 +230,51 @@ export function runWithTimeout(promise, timeout) {
             });
     });
 }
+
+export async function getEntryMetadata(
+    blob: Blob,
+    entry: Entry
+): Promise&lt;EntryMetadata> {
+    const offset = entry.offset;
+    const headerBeginRaw =
+        await blob.slice(offset, offset + ZIP_ENTRY_HEADER_BEGIN_LENGTH).arrayBuffer();
+    const dataView = new DataView(headerBeginRaw);
+    const compressionMethod = dataView.getUint16(8, true);
+    const compressedSize = dataView.getUint32(18, true);
+    const uncompressedSize = dataView.getUint32(22, true);
+    const fileNameLength = dataView.getUint16(26, true);
+    const extraFieldLength = dataView.getUint16(28, true);
+    const headerSize = ZIP_ENTRY_HEADER_BEGIN_LENGTH + fileNameLength + extraFieldLength;
+
+    return {
+        offset,
+        compressionMethod,
+        compressedSize,
+        uncompressedSize,
+        headerSize,
+    };
+}
+
+// Wrapper for Entry#getData() that unwraps ProgressEvent errors
+export async function zipGetData&lt;Type>(
+    entry: Entry,
+    writer: WritableWriter,
+    options?: EntryGetDataOptions
+): Promise&lt;Type> {
+    try {
+        return await entry.getData!(writer, options);
+    } catch (e) {
+        if (
+            e instanceof ProgressEvent &amp;&amp;
+            e.type === "error" &amp;&amp;
+            e.target !== null
+        ) {
+            throw (e.target as ErrorEventInit).error;
+        } else {
+            throw e;
+        }
+    }
+}
 </code></pre>
         </article>
     </section>
@@ -217,9 +286,9 @@ export function runWithTimeout(promise, timeout) {
             
             <footer class="footer">
                 <div class="content has-text-centered">
-                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a></p>
+                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.2</a></p>
                     <p class="sidebar-created-by">
-                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by 
+                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by
                         <a href="http://softwarebrothers.co" target="_blank">SoftwareBrothers - JavaScript Development Agency</a>
                     </p>
                 </div>
@@ -232,6 +301,7 @@ export function runWithTimeout(promise, timeout) {
 <script src="scripts/app.min.js"></script>
 <script>PR.prettyPrint();</script>
 <script src="scripts/linenumber.js"> </script>
+
 
 </body>
 </html>

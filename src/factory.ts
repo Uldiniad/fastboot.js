@@ -4,9 +4,12 @@ import {
     BlobReader,
     BlobWriter,
     TextWriter,
+} from "@zip.js/zip.js";
+import type {
     Entry,
 } from "@zip.js/zip.js";
-import { FastbootDevice, FastbootError, ReconnectCallback } from "./fastboot";
+import { FastbootDevice, FastbootError } from "./fastboot";
+import type { ReconnectCallback } from "./fastboot";
 import { BlobEntryReader } from "./io";
 
 /**
@@ -80,6 +83,7 @@ async function flashEntryBlob(
         {
             onprogress: (bytes: number, len: number) => {
                 onProgress("unpack", partition, bytes / len);
+                return undefined;
             },
         }
     );
@@ -97,12 +101,12 @@ async function tryFlashImages(
     onProgress: FactoryProgressCallback,
     imageNames: Array<string>
 ) {
-    for (let imageName of imageNames) {
-        let pattern = new RegExp(`${imageName}(?:-.+)?\\.img$`);
-        let entry = entries.find((entry) => entry.filename.match(pattern));
+    for (const imageName of imageNames) {
+        const pattern = new RegExp(`${imageName}(?:-.+)?\\.img$`);
+        const entry = entries.find((entry) => entry.filename.match(pattern));
         if (entry !== undefined) {
             if (imageName == "bootloader") {
-                let current_slot = await device.getVariable("current-slot");
+                const current_slot = await device.getVariable("current-slot");
                 if (current_slot == "a") {
                     await flashEntryBlob(device, entry, onProgress, (imageName + "_b"));
                     await device.runCommand("set_active:b");
@@ -125,8 +129,8 @@ async function tryFlashImages(
 
 async function checkRequirements(device: FastbootDevice, androidInfo: string) {
     // Deal with CRLF just in case
-    for (let line of androidInfo.replace("\r", "").split("\n")) {
-        let match = line.match(/^require\s+(.+?)=(.+)$/);
+    for (const line of androidInfo.replace("\r", "").split("\n")) {
+        const match = line.match(/^require\s+(.+?)=(.+)$/);
         if (!match) {
             continue;
         }
@@ -137,15 +141,15 @@ async function checkRequirements(device: FastbootDevice, androidInfo: string) {
             variable = "product";
         }
 
-        let expectValue = match[2];
-        let expectValues: Array<string | null> = expectValue.split("|");
+        const expectValue = match[2];
+        const expectValues: Array<string | null> = expectValue.split("|");
 
         // Special case: not a real variable at all
         if (variable === "partition-exists") {
             // Check whether the partition exists on the device:
             // has-slot = undefined || FAIL => doesn't exist
             // has-slot = yes || no         => exists
-            let hasSlot = await device.getVariable(`has-slot:${expectValue}`);
+            const hasSlot = await device.getVariable(`has-slot:${expectValue}`);
             if (hasSlot !== "yes" && hasSlot !== "no") {
                 throw new FastbootError(
                     "FAIL",
@@ -164,14 +168,14 @@ async function checkRequirements(device: FastbootDevice, androidInfo: string) {
                 );
             }
         } else {
-            let realValue = await device.getVariable(variable);
+            const realValue = await device.getVariable(variable);
 
             if (expectValues.includes(realValue)) {
                 common.logDebug(
                     `Requirement ${variable}=${expectValue} passed`
                 );
             } else {
-                let msg = `Requirement ${variable}=${expectValue} failed, value = ${realValue}`;
+                const msg = `Requirement ${variable}=${expectValue} failed, value = ${realValue}`;
                 common.logDebug(msg);
                 throw new FastbootError("FAIL", msg);
             }
@@ -198,15 +202,11 @@ export async function flashZip(
     blob: Blob,
     wipe: boolean,
     onReconnect: ReconnectCallback,
-    onProgress: FactoryProgressCallback = (
-        _action: string,
-        _item: string,
-        _progress: number
-    ) => {}
+    onProgress: FactoryProgressCallback = () => {}
 ) {
     onProgress("load", "package", 0.0);
-    let reader = new ZipReader(new BlobReader(blob));
-    let entries = await reader.getEntries();
+    const reader = new ZipReader(new BlobReader(blob));
+    const entries = await reader.getEntries();
 
     // Bootloader and radio packs can only be flashed in the bare-metal bootloader
     if ((await device.getVariable("is-userspace")) === "yes") {
@@ -243,7 +243,7 @@ export async function flashZip(
     );
 
     // Cancel snapshot update if in progress
-    let snapshotStatus = await device.getVariable("snapshot-update-status");
+    const snapshotStatus = await device.getVariable("snapshot-update-status");
     if (snapshotStatus !== null && snapshotStatus !== "none") {
         await device.runCommand("snapshot-update:cancel");
     }
@@ -259,6 +259,7 @@ export async function flashZip(
         {
             onprogress: (bytes: number, len: number) => {
                 onProgress("unpack", "images", bytes / len);
+                return undefined;
             },
         }
     ));
@@ -296,7 +297,7 @@ export async function flashZip(
             superName = "super";
         }
 
-        let superAction = wipe ? "wipe" : "flash";
+        const superAction = wipe ? "wipe" : "flash";
         onProgress(superAction, "super", 0.0);
         const superBlob: Blob = await common.zipGetData(
             entry,

@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,7 +7,7 @@
   
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title> FastbootError</title>
+  <title> io.ts</title>
 
   <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -73,164 +75,103 @@
         <div class="core" id="main-content-wrapper">
             <div class="content">
                 <header class="page-title">
-                    <p>Class</p>
-                    <h1>FastbootError</h1>
+                    <p>Source</p>
+                    <h1>io.ts</h1>
                 </header>
                 
 
 
 
-
-<section>
-
-<header>
     
-        <h2><span class="attribs"><span class="type-signature"></span></span>FastbootError<span class="signature">()</span><span class="type-signature"></span></h2>
-        
-            <div class="class-description">Exception class for errors returned by the bootloader, as well as high-level
-fastboot errors resulting from bootloader responses.</div>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-            <div class='vertical-section'>
-                <div class="members">
-                    <div class="member">
-                        <div class=name>
-                            <span class="tag">Constructor</span>
-                        </div>
-                        
-
-
-    
-    <h4 class="name" id="FastbootError">
-        <a class="href-link" href="#FastbootError">#</a>
-        
-        <span class="code-name">
-            
-                new FastbootError<span class="signature">()</span><span class="type-signature"></span>
-            
-        </span>
-    </h4>
-    
-
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    
-
-    
-
-    
-
-    
-        <p class="tag-source">
-            <a href="fastboot.ts.html" class="button">View Source</a>
-            <span>
-                <a href="fastboot.ts.html">fastboot.ts</a>, <a href="fastboot.ts.html#line27">line 27</a>
-            </span>
-        </p>
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                    </div>
-                </div>
-            </div>
-        
-    
-    </div>
-    
-    
-
-    
-
-    
-        <h3 class="subsection-title">Classes</h3>
-
-        <dl>
-            <dt><a href="FastbootError.html">FastbootError</a></dt>
-            <dd></dd>
-        </dl>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</article>
-
-</section>
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { getEntryMetadata, zipGetData } from "./common";
+import type { EntryMetadata } from "./common";
+import { BlobReader, BlobWriter, Reader } from "@zip.js/zip.js";
+import type { Entry, EntryGetDataOptions } from "@zip.js/zip.js";
+
+function parseIndex(index: number, size: number) {
+    return index &lt; 0 ?
+        Math.max(index + size, 0) :
+        Math.min(index, size);
+}
+
+class BlobEntryReaderImpl extends Reader&lt;Blob> {
+    private readonly blob: Blob;
+    private readonly offset: number;
+
+    constructor(blob: Blob, entryMetadata: EntryMetadata) {
+        super(blob);
+
+        this.blob = blob;
+        this.offset = entryMetadata.offset + entryMetadata.headerSize;
+        this.size = entryMetadata.compressedSize;
+    }
+
+    async readUint8Array(index: number, length: number): Promise&lt;Uint8Array> {
+        const start = parseIndex(index, this.size) + this.offset;
+        const end = parseIndex(index + length, this.size) + this.offset;
+        const blob = this.blob.slice(start, end);
+        return new Uint8Array(await blob.arrayBuffer());
+    }
+}
+
+/**
+ * Represents a {@link Reader} instance used to read data of an entry in a zip
+ * file provided as a {@link Blob}. It directly reads data if it is uncompressed.
+ */
+export class BlobEntryReader extends Reader&lt;void> {
+    private readonly blob: Blob;
+    private readonly entry: Entry;
+    private readonly mimeString: string | undefined;
+    private readonly options: EntryGetDataOptions | undefined;
+
+    private reader: Reader&lt;Blob> | undefined;
+
+    /**
+     * @param blob - The blob to read data from, usually the outer zip file.
+     * @param entry - The entry to read data of, usually the inner zip file.
+     * @param mimeString - The MIME type of the data.
+     * @param options - Represents options passed to {@link Entry#getData}.
+     */
+    constructor(
+        blob: Blob,
+        entry: Entry,
+        mimeString?: string,
+        options?: EntryGetDataOptions
+    ) {
+        super();
+
+        this.blob = blob;
+        this.entry = entry;
+        this.mimeString = mimeString;
+        this.options = options;
+    }
+
+    async init(): Promise&lt;void> {
+        const entryMetadata = await getEntryMetadata(this.blob, this.entry);
+
+        if (entryMetadata.compressionMethod !== 0) {
+            const entryBlob: Blob = await zipGetData(
+                this.entry,
+                new BlobWriter(this.mimeString),
+                this.options
+            );
+            this.reader = new BlobReader(entryBlob);
+        } else {
+            this.reader = new BlobEntryReaderImpl(this.blob, entryMetadata);
+        }
+
+        this.size = this.reader.size;
+    }
+
+    async readUint8Array(index: number, length: number): Promise&lt;Uint8Array> {
+        return this.reader!.readUint8Array(index, length);
+    }
+}
+</code></pre>
+        </article>
+    </section>
 
 
 

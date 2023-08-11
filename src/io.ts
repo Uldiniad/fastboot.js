@@ -1,5 +1,7 @@
-import { EntryMetadata, getEntryMetadata, zipGetData } from "./common";
-import { BlobReader, BlobWriter, Entry, EntryGetDataOptions, Reader } from "@zip.js/zip.js";
+import { getEntryMetadata, zipGetData } from "./common";
+import type { EntryMetadata } from "./common";
+import { BlobReader, BlobWriter, Reader } from "@zip.js/zip.js";
+import type { Entry, EntryGetDataOptions } from "@zip.js/zip.js";
 
 function parseIndex(index: number, size: number) {
     return index < 0 ?

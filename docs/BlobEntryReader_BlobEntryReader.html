@@ -5,7 +5,7 @@
   
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title> FastbootError</title>
+  <title> BlobEntryReader</title>
 
   <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -74,7 +74,7 @@
             <div class="content">
                 <header class="page-title">
                     <p>Class</p>
-                    <h1>FastbootError</h1>
+                    <h1>BlobEntryReader</h1>
                 </header>
                 
 
@@ -85,10 +85,8 @@
 
 <header>
     
-        <h2><span class="attribs"><span class="type-signature"></span></span>FastbootError<span class="signature">()</span><span class="type-signature"></span></h2>
-        
-            <div class="class-description">Exception class for errors returned by the bootloader, as well as high-level
-fastboot errors resulting from bootloader responses.</div>
+        <h2><span class="attribs"><span class="type-signature"></span></span>
+            <span class="ancestors"><a href="BlobEntryReader.html">BlobEntryReader</a>#</span>BlobEntryReader<span class="signature">(blob, entry, mimeString, options)</span><span class="type-signature"></span></h2>
         
     
 </header>
@@ -107,12 +105,12 @@ fastboot errors resulting from bootloader responses.</div>
 
 
     
-    <h4 class="name" id="FastbootError">
-        <a class="href-link" href="#FastbootError">#</a>
+    <h4 class="name" id="BlobEntryReader">
+        <a class="href-link" href="#BlobEntryReader">#</a>
         
         <span class="code-name">
             
-                new FastbootError<span class="signature">()</span><span class="type-signature"></span>
+                new BlobEntryReader<span class="signature">(blob, entry, mimeString, options)</span><span class="type-signature"></span>
             
         </span>
     </h4>
@@ -128,6 +126,112 @@ fastboot errors resulting from bootloader responses.</div>
 
 
 
+
+    <h5>Parameters:</h5>
+    
+<div class="table-container">
+    <table class="params table">
+        <thead>
+        <tr>
+            
+            <th>Name</th>
+            
+
+            <th>Type</th>
+
+            
+
+            
+
+            <th class="last">Description</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>blob</code></td>
+  
+
+  <td class="type">
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">The blob to read data from, usually the outer zip file.</td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>entry</code></td>
+  
+
+  <td class="type">
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">The entry to read data of, usually the inner zip file.</td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>mimeString</code></td>
+  
+
+  <td class="type">
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">The MIME type of the data.</td>
+</tr>
+
+
+        
+
+            
+<tr class="deep-level-0">
+  
+      <td class="name"><code>options</code></td>
+  
+
+  <td class="type">
+  
+  </td>
+
+  
+
+  
+
+  <td class="description last">Represents options passed to Entry#getData.</td>
+</tr>
+
+
+        
+        </tbody>
+    </table>
+</div>
 
 
 
@@ -166,9 +270,9 @@ fastboot errors resulting from bootloader responses.</div>
 
     
         <p class="tag-source">
-            <a href="fastboot.ts.html" class="button">View Source</a>
+            <a href="io.ts.html" class="button">View Source</a>
             <span>
-                <a href="fastboot.ts.html">fastboot.ts</a>, <a href="fastboot.ts.html#line27">line 27</a>
+                <a href="io.ts.html">io.ts</a>, <a href="io.ts.html#line79">line 79</a>
             </span>
         </p>
     
@@ -206,13 +310,6 @@ fastboot errors resulting from bootloader responses.</div>
 
     
 
-    
-        <h3 class="subsection-title">Classes</h3>
-
-        <dl>
-            <dt><a href="FastbootError.html">FastbootError</a></dt>
-            <dd></dd>
-        </dl>
     
 
     

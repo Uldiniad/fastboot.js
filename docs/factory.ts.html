@@ -7,7 +7,7 @@
   
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title> factory.js</title>
+  <title> factory.ts</title>
 
   <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -51,7 +51,7 @@
                     href="index.html"
                     class="link"
                 >
-                    API Documentation
+                    Documentation
                 </a>
                 
                 
@@ -68,7 +68,7 @@
             
             <nav>
                 
-                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootError.html">FastbootError</a></li><li><a href="TimeoutError.html">TimeoutError</a></li><li><a href="UsbError.html">UsbError</a></li></ul><h3>Global</h3><ul><li><a href="global.html#setDebugLevel">setDebugLevel</a></li><li><a href="global.html#USER_ACTION_MAP">USER_ACTION_MAP</a></li></ul></div>
+                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="BlobEntryReader.html">BlobEntryReader</a></li><li><a href="BlobEntryReader_BlobEntryReader.html">BlobEntryReader</a></li><li><a href="FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootDevice_FastbootDevice.html">FastbootDevice</a></li><li><a href="FastbootError.html">FastbootError</a></li><li><a href="TimeoutError.html">TimeoutError</a></li><li><a href="UsbError.html">UsbError</a></li></ul><h3>Global</h3><ul><li><a href="global.html#USER_ACTION_MAP">USER_ACTION_MAP</a></li><li><a href="global.html#fromRaw">fromRaw</a></li><li><a href="global.html#parseFileHeader">parseFileHeader</a></li><li><a href="global.html#setDebugLevel">setDebugLevel</a></li><li><a href="global.html#splitBlob">splitBlob</a></li></ul></div>
                 
             </nav>
         </div>
@@ -76,7 +76,7 @@
             <div class="content">
                 <header class="page-title">
                     <p>Source</p>
-                    <h1>factory.js</h1>
+                    <h1>factory.ts</h1>
                 </header>
                 
 
@@ -85,22 +85,60 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import * as common from "./common.js";
-import { ZipReader, BlobReader, BlobWriter, TextWriter } from "@zip.js/zip.js";
-import { FastbootError } from "./fastboot.js";
+            <pre class="prettyprint source linenums"><code>import * as common from "./common";
+import {
+    ZipReader,
+    BlobReader,
+    BlobWriter,
+    TextWriter,
+} from "@zip.js/zip.js";
+import type {
+    Entry,
+} from "@zip.js/zip.js";
+import { FastbootDevice, FastbootError } from "./fastboot";
+import type { ReconnectCallback } from "./fastboot";
+import { BlobEntryReader } from "./io";
+
+/**
+ * Callback for factory image flashing progress.
+ *
+ * @callback FactoryProgressCallback
+ * @param {string} action - Action in the flashing process, e.g. unpack/flash.
+ * @param {string} item - Item processed by the action, e.g. partition being flashed.
+ * @param {number} progress - Progress within the current action between 0 and 1.
+ */
+export type FactoryProgressCallback = (
+    action: string,
+    item: string,
+    progress: number
+) => void;
 
 // Images needed for fastbootd
 const BOOT_CRITICAL_IMAGES = [
     "boot",
-    "vendor_boot",
-    "dtbo",
     "dt",
-    "vbmeta",
+    "dtbo",
+    "init_boot",
+    "pvmfw",
+    "recovery",
     "vbmeta_system",
+    "vbmeta_vendor",
+    "vbmeta",
+    "vendor_boot",
+    "vendor_kernel_boot",
 ];
 
 // Less critical images to flash after boot-critical ones
-const SYSTEM_IMAGES = ["odm", "product", "system", "system_ext", "vendor"];
+const SYSTEM_IMAGES = [
+    "odm",
+    "odm_dlkm",
+    "product",
+    "system_dlkm",
+    "system_ext",
+    "system",
+    "vendor_dlkm",
+    "vendor",
+];
 
 /**
  * User-friendly action strings for factory image flashing progress.
@@ -118,28 +156,21 @@ const BOOTLOADER_REBOOT_TIME = 4000; // ms
 const FASTBOOTD_REBOOT_TIME = 16000; // ms
 const USERDATA_ERASE_TIME = 1000; // ms
 
-// Wrapper for Entry#getData() to unwrap ProgressEvent errors
-async function zipGetData(entry, writer, options = undefined) {
-    try {
-        return await entry.getData(writer, options);
-    } catch (e) {
-        if (e instanceof ProgressEvent &amp;&amp; e.type === "error") {
-            throw e.target.error;
-        } else {
-            throw e;
-        }
-    }
-}
-
-async function flashEntryBlob(device, entry, onProgress, partition) {
+async function flashEntryBlob(
+    device: FastbootDevice,
+    entry: Entry,
+    onProgress: FactoryProgressCallback,
+    partition: string
+) {
     common.logDebug(`Unpacking ${partition}`);
     onProgress("unpack", partition, 0.0);
-    let blob = await zipGetData(
+    const blob: Blob = await common.zipGetData(
         entry,
         new BlobWriter("application/octet-stream"),
         {
-            onprogress: (bytes, len) => {
+            onprogress: (bytes: number, len: number) => {
                 onProgress("unpack", partition, bytes / len);
+                return undefined;
             },
         }
     );
@@ -151,17 +182,39 @@ async function flashEntryBlob(device, entry, onProgress, partition) {
     });
 }
 
-async function tryFlashImages(device, entries, onProgress, imageNames) {
-    for (let imageName of imageNames) {
-        let pattern = new RegExp(`${imageName}(?:-.+)?\\.img$`);
-        let entry = entries.find((entry) => entry.filename.match(pattern));
+async function tryFlashImages(
+    device: FastbootDevice,
+    entries: Array&lt;Entry>,
+    onProgress: FactoryProgressCallback,
+    imageNames: Array&lt;string>
+) {
+    for (const imageName of imageNames) {
+        const pattern = new RegExp(`${imageName}(?:-.+)?\\.img$`);
+        const entry = entries.find((entry) => entry.filename.match(pattern));
         if (entry !== undefined) {
-            await flashEntryBlob(device, entry, onProgress, imageName);
+            if (imageName == "bootloader") {
+                const current_slot = await device.getVariable("current-slot");
+                if (current_slot == "a") {
+                    await flashEntryBlob(device, entry, onProgress, (imageName + "_b"));
+                    await device.runCommand("set_active:b");
+                } else if (current_slot == "b") {
+                    await flashEntryBlob(device, entry, onProgress, (imageName + "_a"));
+                    await device.runCommand("set_active:a");
+                } else {
+                    throw new FastbootError(
+                        "FAIL",
+                        `Invalid slot given by bootloader.`
+                    );
+                }
+            }
+            else {
+                await flashEntryBlob(device, entry, onProgress, imageName);
+            }
         }
     }
 }
 
-async function checkRequirements(device, androidInfo) {
+async function checkRequirements(device: FastbootDevice, androidInfo: string) {
     // Deal with CRLF just in case
     for (let line of androidInfo.replace("\r", "").split("\n")) {
         let match = line.match(/^require\s+(.+?)=(.+)$/);
@@ -176,7 +229,7 @@ async function checkRequirements(device, androidInfo) {
         }
 
         let expectValue = match[2];
-        let expectValues = expectValue.split("|");
+        let expectValues: Array&lt;string | null> = expectValue.split("|");
 
         // Special case: not a real variable at all
         if (variable === "partition-exists") {
@@ -217,7 +270,11 @@ async function checkRequirements(device, androidInfo) {
     }
 }
 
-async function tryReboot(device, target, onReconnect) {
+async function tryReboot(
+    device: FastbootDevice,
+    target: string,
+    onReconnect: ReconnectCallback
+) {
     try {
         await device.reboot(target, false);
     } catch (e) {
@@ -228,22 +285,31 @@ async function tryReboot(device, target, onReconnect) {
 }
 
 export async function flashZip(
-    device,
-    blob,
-    wipe,
-    onReconnect,
-    onProgress = () => {}
+    device: FastbootDevice,
+    blob: Blob,
+    wipe: boolean,
+    onReconnect: ReconnectCallback,
+    onProgress: FactoryProgressCallback = () => {}
 ) {
     onProgress("load", "package", 0.0);
-    let reader = new ZipReader(new BlobReader(blob));
-    let entries = await reader.getEntries();
+    const reader = new ZipReader(new BlobReader(blob));
+    const entries = await reader.getEntries();
 
     // Bootloader and radio packs can only be flashed in the bare-metal bootloader
     if ((await device.getVariable("is-userspace")) === "yes") {
         await device.reboot("bootloader", true, onReconnect);
     }
 
-    // 1. Bootloader pack
+    // 1. Bootloader pack (repeated for slot A and B)
+    await tryFlashImages(device, entries, onProgress, ["bootloader"]);
+    await common.runWithTimedProgress(
+        onProgress,
+        "reboot",
+        "device",
+        BOOTLOADER_REBOOT_TIME,
+        tryReboot(device, "bootloader", onReconnect)
+    );
+
     await tryFlashImages(device, entries, onProgress, ["bootloader"]);
     await common.runWithTimedProgress(
         onProgress,
@@ -264,8 +330,8 @@ export async function flashZip(
     );
 
     // Cancel snapshot update if in progress
-    let snapshotStatus = await device.getVariable("snapshot-update-status");
-    if (snapshotStatus !== undefined &amp;&amp; snapshotStatus !== "none") {
+    const snapshotStatus = await device.getVariable("snapshot-update-status");
+    if (snapshotStatus !== null &amp;&amp; snapshotStatus !== "none") {
         await device.runCommand("snapshot-update:cancel");
     }
 
@@ -273,22 +339,23 @@ export async function flashZip(
     common.logDebug("Loading nested images from zip");
     onProgress("unpack", "images", 0.0);
     let entry = entries.find((e) => e.filename.match(/image-.+\.zip$/));
-    let imagesBlob = await zipGetData(
-        entry,
-        new BlobWriter("application/zip"),
+    const imageReader = new ZipReader(new BlobEntryReader(
+        blob,
+        entry!,
+        "application/zip",
         {
-            onprogress: (bytes, len) => {
+            onprogress: (bytes: number, len: number) => {
                 onProgress("unpack", "images", bytes / len);
+                return undefined;
             },
         }
-    );
-    let imageReader = new ZipReader(new BlobReader(imagesBlob));
-    let imageEntries = await imageReader.getEntries();
+    ));
+    const imageEntries = await imageReader.getEntries();
 
     // 3. Check requirements
     entry = imageEntries.find((e) => e.filename === "android-info.txt");
     if (entry !== undefined) {
-        let reqText = await zipGetData(entry, new TextWriter());
+        const reqText: string = await common.zipGetData(entry, new TextWriter());
         await checkRequirements(device, reqText);
     }
 
@@ -319,7 +386,7 @@ export async function flashZip(
 
         let superAction = wipe ? "wipe" : "flash";
         onProgress(superAction, "super", 0.0);
-        let superBlob = await zipGetData(
+        const superBlob: Blob = await common.zipGetData(
             entry,
             new BlobWriter("application/octet-stream")
         );
@@ -380,9 +447,9 @@ export async function flashZip(
             
             <footer class="footer">
                 <div class="content has-text-centered">
-                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.6</a></p>
+                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.2</a></p>
                     <p class="sidebar-created-by">
-                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by 
+                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by
                         <a href="http://softwarebrothers.co" target="_blank">SoftwareBrothers - JavaScript Development Agency</a>
                     </p>
                 </div>
@@ -395,6 +462,7 @@ export async function flashZip(
 <script src="scripts/app.min.js"></script>
 <script>PR.prettyPrint();</script>
 <script src="scripts/linenumber.js"> </script>
+
 
 </body>
 </html>
