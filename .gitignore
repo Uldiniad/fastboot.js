@@ -1,1 +1,18 @@
-node_modules/
+.DS_Store
+node_modules
+/dist
+
+.env.local
+.env.*.local
+*.log*
+.yarn/cache
+.yarn/install-state.gz
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
