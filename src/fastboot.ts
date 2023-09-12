@@ -9,7 +9,7 @@ const FASTBOOT_USB_CLASS = 0xff;
 const FASTBOOT_USB_SUBCLASS = 0x42;
 const FASTBOOT_USB_PROTOCOL = 0x03;
 
-const BULK_TRANSFER_SIZE = 16384;
+const BULK_TRANSFER_SIZE = 16 * 16 * 1024;
 
 const DEFAULT_DOWNLOAD_SIZE = 512 * 1024 * 1024; // 512 MiB
 // To conserve RAM and work around Chromium's ~2 GiB size limit, we limit the
@@ -384,8 +384,9 @@ export class FastbootDevice {
                 "max-download-size"
             ))!.toLowerCase();
             if (resp) {
-                // AOSP fastboot requires hex
-                return Math.min(parseInt(resp, 16), MAX_DOWNLOAD_SIZE);
+                // Some bootloaders return hex, some return decimal
+                // parseInt handles both by detecting the "0x" prefix
+                return Math.min(parseInt(resp), MAX_DOWNLOAD_SIZE);
             }
         } catch (error) {
             /* Failed = no value, fallthrough */
